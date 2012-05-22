@@ -1,0 +1,10 @@
+<script type="text/javascript">
+var cache = {};
+
+chrome.extension.onConnect.addListener(function(port) {
+    console.assert(port.name == "crap");
+    port.onMessage.addListener(function(msg) {
+        port.postMessage({id:msg.id, value:cache[msg.id], result: (msg.id in cache)});
+    });
+});
+</script>
