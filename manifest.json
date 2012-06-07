@@ -2,7 +2,7 @@
   "name": "Moodz",
   "version": "1.0.0.0",
   "description": "Adds general mood-dependent colored background to tweets on twitter.com",
-  "background":["background.js"],
+  "background_page": "background.html",
   "content_scripts": [{
       "matches": ["*://*.twitter.com/*"],
       "js": ["jquery.js", "moodz.js"]
