@@ -1,46 +1,6 @@
-function getScore(text, resFn){
-    $.ajax({
-        url: url + encodeURIComponent(text),
-        success: function(data, status, jqXHR){
-            if (typeof(data)==typeof("")){
-                data = JSON.parse(data);
-            }
-            if (data.status.toLowerCase()=="ok" && 'score' in data.docSentiment){
-                resFn(1, parseFloat(data.docSentiment.score));
-            }else{
-                resFn(0, "");
-            }
-        }
-    });
-}
-
 var tweetColorMap = {
-    _port: 0,
-    _cache: {},
-    _idCallbackMap: {},
-    
-    _bgPort: function(){
-        if (this._port === 0){
-            this._port = chrome.extension.connect({name: "crap"});
-            this._port.onMessage.addListener(function(msg){
-                this._idCallbackMap[msg.id](msg);
-            });
-        }
-        return this._port;
-    },
-    
-    get: function(key, fn){
-        if (key in this._cache)
-            fn(1, this._cache[key]);
-        else{
-            this._idCallbackMap[key] = fn;
-            this._bgPort().postMessage({key:key});
-        }
-    },
-    
-    set: function(key, value){
-        this._cache[key] = value;
-        this._getBackgroundPage().cache[key] = value;
+    get: function(tweet, fn){
+        chrome.extension.sendRequest(tweet, fn);
     }
 };
 
@@ -80,7 +40,7 @@ function getColorByScore(score){
         color += "FF" + t + t;
     }else{
         t = (230-Math.round(score * diff)).toString(16);
-        color += t + "FF" +  t;                   
+        color += t + "FF" +  t;
     }
     return color;
 }
@@ -103,25 +63,11 @@ function paintScore(obj, score){
     $(obj).css("backgroundColor",getColorByScore(score));
 }
 function refreshMood(){
-    var key1 = "cbea409f98ab1834b4c9456803f1c1af0b0d7e9d"
-    var key2 = "ff7a0501977740eeb2aed727bb35f3441c426d5a"
-    var url = "http://access.alchemyapi.com/calls/text/TextGetTextSentiment?"+
-        "apikey="+key2+"&"+
-        "outputMode=json&text=";
     $.each(getTweets(), function(index, value){
         //Check if exists in the tweetColorMap..
-        tweetColorMap.get(value.id, function(status,result){
-            if (status === 1){
-                paintScore(value.container, tweetColorMap[value.id].value);
-            }else{
-                getScore(value.text, function(status, result){
-                    if (status === 1){
-                        animateScore(value.container,score);
-                        if ('id' in value){
-                            tweetColorMap.set(value.id,score);
-                        }
-                    }
-                });
+        tweetColorMap.get({id:value.id,text:value.text}, function(score){
+            if (score){
+                animateScore(value.container,score);
             }
         });
     });
@@ -140,4 +86,4 @@ $(function(){
     $('#stream-items-id').bind('DOMSubtreeModified.event1',DOMModificationHandler);
     $('.twttr-dialog-wrapper').bind('DOMSubtreeModified.event2',DOMModificationHandler);
     refreshMood();
-})
+});

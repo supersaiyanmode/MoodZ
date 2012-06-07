@@ -1,10 +1,49 @@
+<html>
+<head>
 <script type="text/javascript">
-var cache = {};
+var cache = {
+    set: function(key, value){
+        localStorage[key] = value;
+    },
+    get: function(tweet, resFn){
+        if (tweet.id in localStorage){
+            resFn(localStorage[tweet.id]);
+        }else{
+            var key1 = "cbea409f98ab1834b4c9456803f1c1af0b0d7e9d"
+            var key2 = "ff7a0501977740eeb2aed727bb35f3441c426d5a"
+            var url = "http://access.alchemyapi.com/calls/text/TextGetTextSentiment?"+
+                "apikey="+key2+"&outputMode=json&text=" + tweet.text;
+            
+            var xmlhttp = new XMLHttpRequest();
+            xmlhttp.onreadystatechange=function(){
+                if (xmlhttp.readyState==4) {
+                    if (xmlhttp.status==200){
+                        var data = xmlhttp.responseText;
+                        data = JSON.parse(data);
+                        if (data.status.toLowerCase()=="ok" && 'score' in data.docSentiment){
+                            var val = parseFloat(data.docSentiment.score)
+                            cache.set(tweet.id, val);
+                            resFn(val);
+                        }else{
+                            resFn(null);
+                        }
+                    }else{
+                        console.log("ERROR!!");
+                        resFn(null);
+                    }
+                }
+            }
+            xmlhttp.open("GET", url, true);
+            xmlhttp.send(null);
+        }
+    }
+};
 
-chrome.extension.onConnect.addListener(function(port) {
-    console.assert(port.name == "crap");
-    port.onMessage.addListener(function(msg) {
-        port.postMessage({id:msg.id, value:cache[msg.id], result: (msg.id in cache)});
-    });
+chrome.extension.onRequest.addListener(function(request, sender, sendResponse){
+    cache.get(request,sendResponse);
 });
 </script>
+</head>
+<body>
+</body>
+</html>
